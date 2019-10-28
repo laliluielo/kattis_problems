@@ -49,33 +49,34 @@ int main(int argc, char *argv[]){
             GCD = gcd(GCD, objectArray[i].first);
         }
         //cout << "GCD: " << GCD << std::endl;;
-        std::pair<int,std::vector<int> > DPArray[objectCount+1][capacity+1];
+        std::pair<int,std::vector<int> > DPArray[2][capacity+1];
         std::vector<int> none;
         std::pair<int, std::vector<int> > empty = make_pair(0, none);
         for(int i = 0; i <= capacity; i+= GCD){
             DPArray[0][i] = empty;
         }
         for(int i = 1; i <= objectCount; i++){ // I is object under consideration
+            //cout << "Object " << i-1 << std::endl;
             for(int j = 0; j <= capacity; j+= GCD){ // J is capacity of the knapsack
                 if(objectArray[i-1].first > j){
-                    DPArray[i][j] = DPArray[i-1][j];
+                    DPArray[i%2][j] = DPArray[(i-1)%2][j];
                 }
                 else{
-                    std::pair<int,std::vector<int> > dontAdd = DPArray[i-1][j];
-                    std::pair<int,std::vector<int> > Add = DPArray[i-1][j-objectArray[i-1].first];
+                    std::pair<int,std::vector<int> > dontAdd = DPArray[(i-1)%2][j];
+                    std::pair<int,std::vector<int> > Add = DPArray[(i-1)%2][j-objectArray[i-1].first];
                     Add.first += objectArray[i-1].second;
                     Add.second.push_back(i-1);
                     if(Add.first > dontAdd.first){
-                        DPArray[i][j] = Add;
+                        DPArray[i%2][j] = Add;
                     }else{
-                        DPArray[i][j] = dontAdd;
+                        DPArray[i%2][j] = dontAdd;
                     }
                 }
             }
         }
 
 /*       Debugging Use
-        for(int i = 0; i <= objectCount; i++){
+        for(int i = 0; i < 2; i++){
             for(int j = 0; j <= capacity; j++){
                 std::pair<int,std::vector<int> > lookingAt = DPArray[i][j];
                 cout << "DPArray[" << i << "][" << j << "]:" << "Value: " << lookingAt.first;
@@ -85,10 +86,10 @@ int main(int argc, char *argv[]){
                 }
                 cout << std::endl;
             }
-        } */
-
+        }
+*/
         //cout << "Final Answer \n";
-        std::pair<int,std::vector<int> > answer = DPArray[objectCount][capacity];
+        std::pair<int,std::vector<int> > answer = DPArray[objectCount%2][capacity];
         int size = answer.second.size();
         cout << size << std::endl;
         for(std::vector<int>::const_iterator iter = answer.second.begin(); iter != answer.second.end(); ++iter){
