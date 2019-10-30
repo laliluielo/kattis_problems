@@ -4,6 +4,7 @@
 #include <vector>
 #include <sstream>
 #include <utility>
+#include <cstring>
 using std::string;
 using std::cin;
 using std::cout;
@@ -14,10 +15,11 @@ int gcd(int a, int b){
         std::swap(a, b);
     }
     return a;
-} 
+}
 
 int main(int argc, char *argv[]){
 
+    
     std::string line;
     while (std::getline(std::cin, line))
         //New Test Case
@@ -27,12 +29,12 @@ int main(int argc, char *argv[]){
         int capacity = 0, objectCount = 0;
         ss >> capacity >> objectCount;
         ss.clear();
-        //cout << "Capacity " << capacity << " with " << objectCount << " options to pick.\n";
+//        cout << "Capacity " << capacity << " with " << objectCount << " options to pick.\n";
         std::pair<int,int> objectArray[objectCount];
         for(int i = 0; i < objectCount; i++){
             //Parse Object Value/Weight Pairs
             std::pair <int, int> object;
-            int value,weight;
+            int value=0,weight=0;
             std::getline(std::cin, line);
             ss << line;
             ss >> value >> weight;
@@ -40,61 +42,90 @@ int main(int argc, char *argv[]){
             objectArray[i] = std::make_pair(weight, value);
         }
 
-/*         for(int i = 0; i < objectCount; i++){
+/*       for(int i = 0; i < objectCount; i++){
             cout << "Object " << i << ": V" << objectArray[i].second << ", W" << objectArray[i].first << std::endl;
-        } */
+        }
+*/
+        int *DPArray = new int[2001*2001]; 
         int GCD = objectArray[0].first;
-        //Find GCD to speed up calculations
+        //Find GCD to *maybe* speed up calculations
         for(int i = 1; i < objectCount; i ++){
             GCD = gcd(GCD, objectArray[i].first);
         }
-        //cout << "GCD: " << GCD << std::endl;;
-        std::pair<int,std::vector<int> > DPArray[2][capacity+1];
-        std::vector<int> none;
-        std::pair<int, std::vector<int> > empty = make_pair(0, none);
-        for(int i = 0; i <= capacity; i+= GCD){
-            DPArray[0][i] = empty;
+        for(int i = 0; i <= capacity; i++){ //No items
+            DPArray[i]=0;
+        }
+        for(int j = 0; j <= objectCount; j++){//No capacity
+            DPArray[j * capacity] = 0;
         }
         for(int i = 1; i <= objectCount; i++){ // I is object under consideration
             //cout << "Object " << i-1 << std::endl;
-            for(int j = 0; j <= capacity; j+= GCD){ // J is capacity of the knapsack
-                if(objectArray[i-1].first > j){
-                    DPArray[i%2][j] = DPArray[(i-1)%2][j];
+            int W = objectArray[i-1].first;
+            for(int j = 0; j <= capacity; j+= 1){ // J is current capacity of the knapsack
+                if(j == 0)
+                continue;
+                if(W > j){
+                    DPArray[i * capacity+j] = DPArray[(i-1) * capacity+j];
                 }
                 else{
-                    std::pair<int,std::vector<int> > dontAdd = DPArray[(i-1)%2][j];
-                    std::pair<int,std::vector<int> > Add = DPArray[(i-1)%2][j-objectArray[i-1].first];
-                    Add.first += objectArray[i-1].second;
-                    Add.second.push_back(i-1);
-                    if(Add.first > dontAdd.first){
-                        DPArray[i%2][j] = Add;
+                    int dontAdd = DPArray[(i-1) * capacity+j];
+                    int Add = DPArray[(i-1) * capacity+(j-W)];
+                    if(j-W == 0){//Hack
+                        Add = 0;
+                    }
+                    Add += objectArray[i-1].second;
+                    //cout << "Checking " << Add << " against " << dontAdd << std::endl;
+                    if(Add > dontAdd){
+                        //cout << "Adding " << Add << " at position [" << i <<"][" << j << "] (" << i * capacity+j << ")" << std::endl;
+                        DPArray[i * capacity+j] = Add;
+                        //cout << DPArray[i * capacity+j] << std::endl;
                     }else{
-                        DPArray[i%2][j] = dontAdd;
+                        DPArray[i * capacity+j] = dontAdd;
                     }
                 }
+                //cout << "Solved [" << i << "][" << j << "] aka (" << i * capacity + j << "):" << DPArray[i*capacity+j] << "\n";
             }
         }
-
-/*       Debugging Use
-        for(int i = 0; i < 2; i++){
-            for(int j = 0; j <= capacity; j++){
-                std::pair<int,std::vector<int> > lookingAt = DPArray[i][j];
-                cout << "DPArray[" << i << "][" << j << "]:" << "Value: " << lookingAt.first;
-                cout << " Objects: ";
-                for(std::vector<int>::const_iterator iter = lookingAt.second.begin(); iter != lookingAt.second.end(); ++iter){
-                    cout << *iter << ' ';
-                }
-                cout << std::endl;
+        //cout << "Final Value: " << DPArray[objectCount*capacity+capacity] << std::endl;
+/*
+          for(int i = 0; i <= objectCount; i++){
+            for(int j = 1; j <= capacity; j++){
+                int Value = DPArray[i * capacity+j];
+                //cout << "DPArray[" << i * capacity + j << "]:" << Value << " ";
+                //cout << std::endl;
+                cout << Value << " ";
             }
-        }
+            cout << std::endl;
+        }  
 */
-        //cout << "Final Answer \n";
-        std::pair<int,std::vector<int> > answer = DPArray[objectCount%2][capacity];
-        int size = answer.second.size();
+
+
+
+        int j = capacity;
+        std::vector<int> answer;
+        for(int i = objectCount; i > 0; i--){
+            int iValue = DPArray[i * capacity+j];
+            int preValue = DPArray[(i-1) *capacity+j];
+            //cout << iValue << " compared to " << preValue << std::endl;
+            if(iValue == preValue)//Object i wasn't selected
+                {continue;}
+            else{
+                answer.push_back(i-1);
+                j= j-objectArray[i-1].first;
+                if(j == 0){
+                    break;
+                }
+            }
+        }
+        int size = answer.size();
         cout << size << std::endl;
-        for(std::vector<int>::const_iterator iter = answer.second.begin(); iter != answer.second.end(); ++iter){
+        for(std::vector<int>::const_iterator iter = answer.begin(); iter != answer.end(); ++iter){
             cout << *iter << ' ';
             }
         cout << std::endl;
-    }
-}
+
+        delete DPArray;
+
+    }//end While
+
+}//end program
